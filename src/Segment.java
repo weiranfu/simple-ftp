@@ -1,24 +1,24 @@
+/**
+ * Parse the segment received or prepare a new segment.
+ */
 public class Segment {
-    private int N;
-    private int MSS;
-    private byte[] bytes;
-    private static final int HEADER_BYTE = 8;
+    private byte[] segment;
     private static final int MASK8 = 0xFF;
 
-    public Segment(int MSS) {
-        this.MSS = MSS;
-        N = MSS + HEADER_BYTE;
-        bytes = new byte[N];
+    public static final int HEADER_SIZE = 8;
+
+    public Segment(byte[] segment) {
+        this.segment = segment;
     }
 
     public void setSeqNum(int n) {
-        bytes[3] = (byte) (n & MASK8);
+        segment[3] = (byte) (n & MASK8);
         n >>= 8;
-        bytes[2] = (byte) (n & MASK8);
+        segment[2] = (byte) (n & MASK8);
         n >>= 8;
-        bytes[1] = (byte) (n & MASK8);
+        segment[1] = (byte) (n & MASK8);
         n >>= 8;
-        bytes[0] = (byte) (n & MASK8);
+        segment[0] = (byte) (n & MASK8);
     }
 
     /*
@@ -26,53 +26,61 @@ public class Segment {
      so we must use (byte & 0xFF) to get the original int value.
      */
     public int getSeqNum() {
-        int seq = bytes[0] & MASK8;
+        int seq = segment[0] & MASK8;
         seq <<= 8;
-        seq |= bytes[1] & MASK8;
+        seq |= segment[1] & MASK8;
         seq <<= 8;
-        seq |= bytes[2] & MASK8;
+        seq |= segment[2] & MASK8;
         seq <<= 8;
-        seq |= bytes[3] & MASK8;
+        seq |= segment[3] & MASK8;
         return seq;
     }
 
     public void setCheckSum(int checkSum) {
-        bytes[5] = (byte) (checkSum & MASK8);
+        segment[5] = (byte) (checkSum & MASK8);
         checkSum >>= 8;
-        bytes[4] = (byte) (checkSum & MASK8);
+        segment[4] = (byte) (checkSum & MASK8);
     }
 
     public int getCheckSum() {
-        int checkSum = bytes[4] & MASK8;
+        int checkSum = segment[4] & MASK8;
         checkSum <<= 8;
-        checkSum |= bytes[5] & MASK8;
+        checkSum |= segment[5] & MASK8;
         return checkSum;
     }
 
     public void setType(int type) {
-        bytes[7] = (byte) (type & MASK8);
+        segment[7] = (byte) (type & MASK8);
         type >>= 8;
-        bytes[6] = (byte) (type & MASK8);
+        segment[6] = (byte) (type & MASK8);
     }
 
     public int getType() {
-        int type = bytes[6] & MASK8;
+        int type = segment[6] & MASK8;
         type <<= 8;
-        type |= bytes[7] & MASK8;
+        type |= segment[7] & MASK8;
         return type;
     }
 
-    public void setData(byte[] data) {
-        System.arraycopy(data, 0, bytes, 8, MSS);
+    /**
+     * Set data of segment.
+     * Copy data[] from offset with length to segment[] from 8 to end.
+     * @param data  data array
+     * @param offset offset of data in data array
+     * @param length length of data
+     */
+    public void setData(byte[] data, int offset, int length) {
+        System.arraycopy(data, offset, segment, HEADER_SIZE, length);
     }
 
     public byte[] getData() {
-        byte[] data = new byte[MSS];
-        System.arraycopy(bytes, 8, data, 0, MSS);
+        int dataLength = segment.length - HEADER_SIZE;
+        byte[] data = new byte[dataLength];
+        System.arraycopy(segment, HEADER_SIZE, data, 0, dataLength);
         return data;
     }
 
-    public byte[] toBytes() {
-        return bytes;
+    public byte[] toByteArray() {
+        return segment;
     }
 }
