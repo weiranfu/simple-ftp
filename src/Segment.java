@@ -49,16 +49,15 @@ public class Segment {
         return checkSum;
     }
 
-    public void setType(int type) {
-        segment[7] = (byte) (type & MASK8);
-        type >>= 8;
-        segment[6] = (byte) (type & MASK8);
+    public void setType(byte[] type) {
+        segment[6] = type[0];
+        segment[7] = type[1];
     }
 
-    public int getType() {
-        int type = segment[6] & MASK8;
-        type <<= 8;
-        type |= segment[7] & MASK8;
+    public byte[] getType() {
+        byte[] type = new byte[2];
+        type[0] = segment[6];
+        type[1] = segment[7];
         return type;
     }
 
