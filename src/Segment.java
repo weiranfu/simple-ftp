@@ -59,4 +59,8 @@ public class Segment {
         type |= bytes[7] & MASK8;
         return type;
     }
+
+    public byte[] toBytes() {
+        return bytes;
+    }
 }
