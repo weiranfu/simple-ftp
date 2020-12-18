@@ -1,10 +1,12 @@
 public class Segment {
     private int N;
+    private int MSS;
     private byte[] bytes;
     private static final int HEADER_BYTE = 8;
     private static final int MASK8 = 0xFF;
 
     public Segment(int MSS) {
+        this.MSS = MSS;
         N = MSS + HEADER_BYTE;
         bytes = new byte[N];
     }
@@ -58,6 +60,16 @@ public class Segment {
         type <<= 8;
         type |= bytes[7] & MASK8;
         return type;
+    }
+
+    public void setData(byte[] data) {
+        System.arraycopy(data, 0, bytes, 8, MSS);
+    }
+
+    public byte[] getData() {
+        byte[] data = new byte[MSS];
+        System.arraycopy(bytes, 8, data, 0, MSS);
+        return data;
     }
 
     public byte[] toBytes() {
