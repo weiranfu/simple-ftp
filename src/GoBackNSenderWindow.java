@@ -39,7 +39,7 @@ public class GoBackNSenderWindow {
     }
 
     /**
-     * @return whether packets are all sent.
+     * Determine whether all packets are sent.
      */
     public synchronized boolean isFinished() {
         return left > right;
