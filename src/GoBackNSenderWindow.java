@@ -1,12 +1,11 @@
-import java.net.DatagramPacket;
 
 public class GoBackNSenderWindow {
     private final int N;
     private int left, right; // left, right bound of window
     private int next;            // the index of next packet to be sent
 
-    public GoBackNSenderWindow(DatagramPacket[] packets, int window) {
-        N = packets.length;
+    public GoBackNSenderWindow(int packetsNum, int window) {
+        N = packetsNum;
         left = 0; right = window - 1;
         next = 0;
     }
@@ -33,9 +32,14 @@ public class GoBackNSenderWindow {
 
     /**
      * Reset window if timeout.
+     * @param seq The timeout index/sequence of packet.
+     * @return The last index of already sent packets.
      */
-    public synchronized void resetWindow() {
-        next = left;
+    public synchronized int resetWindow(int seq) {
+        int res = next - 1;
+        next = seq;
+        if (left > next) left = next;
+        return res;
     }
 
     /**
