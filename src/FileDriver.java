@@ -3,7 +3,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-public class File {
+public class FileDriver {
 
     public static byte[] readFile(String filePath) throws IOException {
         Path file = Paths.get(filePath);
