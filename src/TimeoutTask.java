@@ -16,6 +16,7 @@ public class TimeoutTask extends TimerTask {
 
     @Override
     public void run() {
+        System.out.println("Timeout, sequence number = " + seq);
         int from = window.resetWindow(seq);
         for (int i = seq + 1; i <= from; i++) {
             timers.get(i).cancel();                 // cancel the timers of packets which need to be retransmitted.
