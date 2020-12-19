@@ -6,6 +6,8 @@ public class Segment {
     private static final int MASK8 = 0xFF;
 
     public static final int HEADER_SIZE = 8;
+    public static final short dataType = (short)21845;  // 0101010101010101
+    public static final short ackType = (short)-21846;   // 1010101010101010
 
     public Segment(byte[] segment) {
         this.segment = segment;
