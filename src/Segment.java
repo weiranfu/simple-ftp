@@ -36,29 +36,30 @@ public class Segment {
         return seq;
     }
 
-    public void setCheckSum(int checkSum) {
+    public void setCheckSum(short checkSum) {
         segment[5] = (byte) (checkSum & MASK8);
         checkSum >>= 8;
         segment[4] = (byte) (checkSum & MASK8);
     }
 
-    public int getCheckSum() {
+    public short getCheckSum() {
         int checkSum = segment[4] & MASK8;
         checkSum <<= 8;
         checkSum |= segment[5] & MASK8;
-        return checkSum;
+        return (short) checkSum;
     }
 
-    public void setType(byte[] type) {
-        segment[6] = type[0];
-        segment[7] = type[1];
+    public void setType(short type) {
+        segment[7] = (byte) (type & MASK8);
+        type >>= 8;
+        segment[6] = (byte) (type & MASK8);
     }
 
-    public byte[] getType() {
-        byte[] type = new byte[2];
-        type[0] = segment[6];
-        type[1] = segment[7];
-        return type;
+    public short getType() {
+        int type = segment[6] & MASK8;
+        type <<= 8;
+        type |= segment[7] & MASK8;
+        return (short) type;
     }
 
     /**
