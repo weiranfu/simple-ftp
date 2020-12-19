@@ -44,7 +44,7 @@ public class FTPClient implements Runnable {
             List<Segment> segments = prepareSegments();
             List<Timer> timers = new ArrayList<>();                // We don't need Thread-safe List, because Timer is thread-safe.
             for (int i = 0; i < segments.size(); i++) timers.add(new Timer());
-            window = new GoBackNSenderWindow(segments.size(), MSS);
+            window = new GoBackNSenderWindow(segments.size(), WINDOW_SIZE);
             ACKReceiveThread receiveThread = new ACKReceiveThread(socket, window, MSS, timers);
             new Thread(receiveThread).start();
             // Begin to send UDP segments.
