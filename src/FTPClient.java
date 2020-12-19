@@ -19,7 +19,6 @@ public class FTPClient implements Runnable {
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private InetAddress localAddress;
-    private byte[] buf;
     private GoBackNSenderWindow window;
 
 
@@ -51,11 +50,11 @@ public class FTPClient implements Runnable {
             rdt_send(segments, timers, socket);
             receiveThread.stop();
         } catch (SocketException e) {
-            System.out.println("Cannot open a UDP socket: " + e.getMessage());
+            System.out.println("Failed to open a UDP socket: " + e.getMessage());
         } catch (UnknownHostException e) {
-            System.out.println("Cannot find the address of localhost.");
+            System.out.println("Failed to find the address of localhost: " + e.getMessage());
         } catch (IOException e) {
-            System.out.println("Cannot load file or send file with socket.");
+            System.out.println("Failed to load file or send file with socket: " + e.getMessage());
         } finally {
             socket.close();
         }
