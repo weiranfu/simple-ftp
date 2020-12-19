@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.List;
+import java.util.Timer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ACKReceiveThread implements Runnable {
@@ -9,12 +11,14 @@ public class ACKReceiveThread implements Runnable {
     private final DatagramSocket socket;
     private final GoBackNSenderWindow window;
     private final int MSS;
+    private final List<Timer> timers;
     private AtomicBoolean running;
 
-    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS) {
+    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, List<Timer> timers) {
         this.socket = socket;
         this.window = window;
         this.MSS = MSS;
+        this.timers = timers;
     }
 
     @Override
@@ -25,7 +29,8 @@ public class ACKReceiveThread implements Runnable {
         while (running.get()) {
             try {
                 socket.receive(packet);
-                byte[] data = packet.getData();
+                byte[] data = new byte[packet.getLength()];    // for storing data.
+                System.arraycopy(buf, 0, data, 0, packet.getLength());
                 Segment segment = new Segment(data);
                 short type = segment.getType();
                 if (type == Segment.ackType) {
