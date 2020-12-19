@@ -12,7 +12,7 @@ public class ACKReceiveThread implements Runnable {
     private final GoBackNSenderWindow window;
     private final int MSS;
     private final List<Timer> timers;
-    private AtomicBoolean running;
+    private boolean running;
 
     public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, List<Timer> timers) {
         this.socket = socket;
@@ -25,8 +25,8 @@ public class ACKReceiveThread implements Runnable {
     public void run() {
         byte[] buf = new byte[MSS];
         DatagramPacket packet = new DatagramPacket(buf, MSS);
-        running.set(true);
-        while (running.get()) {
+        running = true;
+        while (running) {
             try {
                 socket.receive(packet);
                 byte[] data = new byte[packet.getLength()];    // for storing data.
@@ -36,9 +36,10 @@ public class ACKReceiveThread implements Runnable {
                 if (type == Segment.ackType) {
                     int seq = segment.getSeqNum();
                     window.receiveACK(seq);
+                    timers.get(seq).cancel();  // Cancel timer.
                 }
             } catch (IOException e) {
-                if (!running.get()) {
+                if (!running) {
                     break;
                 }
                 System.out.println("Failed to receive packet from server: " + e.getMessage());
@@ -47,7 +48,8 @@ public class ACKReceiveThread implements Runnable {
     }
 
     public void stop() {
-        running.set(false);
+        running = false;
         socket.close();
+        System.out.println("Receiving ACK Thread is closed.");
     }
 }
