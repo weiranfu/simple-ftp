@@ -69,7 +69,7 @@ public class FTPClient implements Runnable {
             int seq = window.sendPacketSeq();
             if (seq != -1) {
                 byte[] data = segments.get(seq).toByteArray();
-                DatagramPacket packet = new DatagramPacket(data, data.length);
+                DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
                 socket.send(packet);
                 timers.get(seq).schedule(new TimeoutTask(seq, window, timers), DELAY_TIME);
                 System.out.println("Sent packet, sequence number = " + seq);
