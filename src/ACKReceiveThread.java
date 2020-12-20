@@ -3,6 +3,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.Map;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ACKReceiveThread implements Runnable {
 
@@ -11,12 +12,16 @@ public class ACKReceiveThread implements Runnable {
     private final int MSS;
     private final Map<Integer, Future<?>> tasksMap;
     private boolean running;
+    private AtomicBoolean waiting;
+    private WaitNotify waitNotify;
 
-    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, Map<Integer, Future<?>> tasksMap) {
+    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, Map<Integer, Future<?>> tasksMap, AtomicBoolean waiting, WaitNotify waitNotify) {
         this.socket = socket;
         this.window = window;
         this.MSS = MSS;
         this.tasksMap = tasksMap;
+        this.waiting = waiting;
+        this.waitNotify = waitNotify;
     }
 
     @Override
@@ -27,17 +32,21 @@ public class ACKReceiveThread implements Runnable {
         while (running) {
             try {
                 socket.receive(packet);
+                waiting.set(true);                                          // Let FTPSender thread to wait.
                 byte[] data = new byte[packet.getLength()];    // for storing data.
                 System.arraycopy(buf, 0, data, 0, packet.getLength());
                 Segment segment = new Segment(data);
                 short type = segment.getType();
                 if (type == Segment.ackType) {
-                    int seq = segment.getSeqNum();
-                    window.receiveACK(seq);
-                    if (tasksMap.containsKey(seq)) {
-                        tasksMap.get(seq).cancel(false);     // Cancel timer of this packet.
+                    int ACKSeq = segment.getSeqNum();
+                    window.receiveACK(ACKSeq);
+                    for (Integer key : tasksMap.keySet()) {
+                        if (key < ACKSeq) {
+                            tasksMap.get(key).cancel(false);  // Cancel timer of this packet.
+                            tasksMap.remove(key);
+                        }
                     }
-                    System.out.println("Received ACK, sequence number = " + seq);
+                    System.out.println("Received ACK, sequence number = " + ACKSeq);
                 }
             } catch (IOException e) {
                 if (!running) {
@@ -45,6 +54,9 @@ public class ACKReceiveThread implements Runnable {
                 }
                 running = false;
                 System.out.println("Failed to receive packet from server: " + e.getMessage());
+            } finally {
+                waiting.set(false);
+                waitNotify.doNotify();                  // Notify FTPSender thread to continue.
             }
         }
     }

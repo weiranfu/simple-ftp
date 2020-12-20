@@ -32,14 +32,9 @@ public class GoBackNSenderWindow {
 
     /**
      * Reset window to the left bound if timeout.
-     * @return An array of 2 size: res[0] The reset index/sequence of packet. res[1] The last index/sequence of already sent packet.
      */
-    public synchronized int[] resetWindow() {
-        int[] res = new int[2];
-        res[1] = next - 1;
-        res[0] = left;
+    public synchronized void resetWindow() {
         next = left;
-        return res;
     }
 
     /**

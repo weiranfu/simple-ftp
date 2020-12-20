@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FTPSender implements Runnable {
 
@@ -23,6 +24,8 @@ public class FTPSender implements Runnable {
     private InetAddress serverAddress;
     private InetAddress localAddress;
     private GoBackNSenderWindow window;
+    private AtomicBoolean waiting;
+    private WaitNotify waitNotify;
 
 
     public FTPSender(String serverHostname, int serverPort, String filePath, int windowSize, int MSS) {
@@ -34,6 +37,8 @@ public class FTPSender implements Runnable {
         pseudoHeader = new PseudoHeader();
         executor = new ScheduledThreadPoolExecutor(windowSize);
         executor.setRemoveOnCancelPolicy(true);         // Remove cancelled task immediately
+        waiting = new AtomicBoolean();
+        waitNotify = new WaitNotify();
     }
 
     @Override
@@ -48,9 +53,10 @@ public class FTPSender implements Runnable {
             List<Segment> segments = prepareSegments();
             Map<Integer, Future<?>> tasksMap = new ConcurrentHashMap<>();           // Use ConcurrentHashMap for concurrency.
             window = new GoBackNSenderWindow(segments.size(), WINDOW_SIZE);
-            ACKReceiveThread receiveThread = new ACKReceiveThread(socket, window, MSS, tasksMap);
+            ACKReceiveThread receiveThread = new ACKReceiveThread(socket, window, MSS, tasksMap, waiting, waitNotify);
             new Thread(receiveThread).start();
             // Begin to send UDP segments.
+            waiting.set(false);
             rdt_send(segments, tasksMap, socket);
             receiveThread.stop();
         } catch (SocketException e) {
@@ -73,13 +79,19 @@ public class FTPSender implements Runnable {
      */
     private void rdt_send(List<Segment> segments, Map<Integer, Future<?>> tasksMap, DatagramSocket socket) throws IOException {
         while (!window.isFinished()) {
+            while (waiting.get()) {         // wait for timeout thread finishing clearing timers.
+                waitNotify.doWait();
+            }
             int seq = window.sendPacketSeq();
             if (seq != -1) {
                 byte[] data = segments.get(seq).toByteArray();
                 DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
                 socket.send(packet);
-                SenderTimeoutTask timeoutTask = new SenderTimeoutTask(seq, window, tasksMap);
+                SenderTimeoutTask timeoutTask = new SenderTimeoutTask(seq, window, tasksMap, waiting, waitNotify);
                 Future<?> task = executor.schedule(timeoutTask, DELAY_SECONDS, TimeUnit.SECONDS);
+                if (tasksMap.containsKey(seq)) {
+                    tasksMap.get(seq).cancel(false);
+                }
                 tasksMap.put(seq, task);
                 System.out.println("Sent packet, sequence number = " + seq);
             }
