@@ -124,6 +124,6 @@ public class FTPSender implements Runnable {
             byte second = i != offset + length - 1 ? data[i + 1] : 0;
             sum += (short)((first << 8) | second);
         }
-        return sum;
+        return (short)~sum;
     }
 }
