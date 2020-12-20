@@ -73,6 +73,10 @@ public class FTPReceiver implements Runnable {
                 if (seq == TRANSFER_COMPLETED_SEQ) {     // transfer completed.
                     break;
                 }
+                if (lostPacket(LOST_POSSIBILITY)) {
+                    System.out.println("Packet loss, sequence number = " + seq);
+                    continue;
+                }
                 if (!window.shouldReceivedPacket(seq)) continue;  // the segment received is out of order!
                 byte[] data = segment.getData();
                 pseudoHeader.setSourceIP(packet.getAddress());
@@ -81,11 +85,12 @@ public class FTPReceiver implements Runnable {
                     System.out.println("Received packet, segment number = " + seq);
                     window.receivePacket();
                     dataByteArray.add(data);
-                    ACKSegment.setSeqNum(seq + 1);          // ACK with seq + 1
+                    int ACKSeq = seq + 1;                       // ACK with seq + 1
+                    ACKSegment.setSeqNum(ACKSeq);
                     byte[] ACKByteArray = ACKSegment.toByteArray();
                     DatagramPacket ACKPacket = new DatagramPacket(ACKByteArray, ACKByteArray.length, packet.getAddress(), packet.getPort());
-                    socket.send(ACKPacket);                 // Send ACK
-                    System.out.println("Send ACK, sequence number " + (seq + 1));
+                    socket.send(ACKPacket);                     // Send ACK
+                    System.out.println("Send ACK, sequence number " + ACKSeq);
                 }
             }
         }
@@ -113,6 +118,11 @@ public class FTPReceiver implements Runnable {
             sum += (short) ((first << 8) | second);
         }
         return (short) (sum + segment.getCheckSum()) == CHECKSUM_ANS;
+    }
+
+    private boolean lostPacket(double LOST_POSSIBILITY) {
+        double random = Math.random();
+        return random <= LOST_POSSIBILITY;
     }
 
     private void writeToFile(List<byte[]> list, String filename) throws IOException {
