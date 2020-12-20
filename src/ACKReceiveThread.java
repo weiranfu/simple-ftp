@@ -36,13 +36,14 @@ public class ACKReceiveThread implements Runnable {
                 if (type == Segment.ackType) {
                     int seq = segment.getSeqNum();
                     window.receiveACK(seq);
-                    timers.get(seq).cancel();  // Cancel timer of this packet.
+                    timers.get(seq).cancel();     // Cancel timer of this packet.
                     System.out.println("Received ACK, sequence number = " + seq);
                 }
             } catch (IOException e) {
                 if (!running) {
                     break;
                 }
+                running = false;
                 System.out.println("Failed to receive packet from server: " + e.getMessage());
             }
         }

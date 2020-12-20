@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 
-public class FTPClient implements Runnable {
+public class FTPSender implements Runnable {
 
     private final int UDP_HEADER_SIZE = 8;
     private final int MASK16 = 0xFFFF;
@@ -22,7 +22,7 @@ public class FTPClient implements Runnable {
     private GoBackNSenderWindow window;
 
 
-    public FTPClient(String serverHostname, int serverPort, String filePath, int windowSize, int MSS) {
+    public FTPSender(String serverHostname, int serverPort, String filePath, int windowSize, int MSS) {
         SERVER_HOSTNAME = serverHostname;
         SERVER_PORT = serverPort;
         FILE_PATH = filePath;
@@ -48,6 +48,7 @@ public class FTPClient implements Runnable {
             new Thread(receiveThread).start();
             // Begin to send UDP segments.
             rdt_send(segments, timers, socket);
+            System.out.println("TTTTTTTT");
             receiveThread.stop();
         } catch (SocketException e) {
             System.out.println("Failed to open a UDP socket: " + e.getMessage());
@@ -73,12 +74,13 @@ public class FTPClient implements Runnable {
                 byte[] data = segments.get(seq).toByteArray();
                 DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
                 socket.send(packet);
-                timers.get(seq).schedule(new TimeoutTask(seq, window, timers), DELAY_TIME);
+                timers.set(seq, new Timer());
+                timers.get(seq).schedule(new SenderTimeoutTask(seq, window, timers), DELAY_TIME);
                 System.out.println("Sent packet, sequence number = " + seq);
             }
         }
         Segment msg = new Segment(new byte[Segment.HEADER_SIZE]);
-        msg.setSeqNum(FTPServer.TRANSFER_COMPLETED_SEQ);
+        msg.setSeqNum(FTPReceiver.TRANSFER_COMPLETED_SEQ);
         msg.setType(Segment.dataType);
         byte[] data = msg.toByteArray();
         DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
