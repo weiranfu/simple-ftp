@@ -1,17 +1,17 @@
-import java.util.List;
-import java.util.Timer;
+import java.util.Map;
 import java.util.TimerTask;
+import java.util.concurrent.Future;
 
 public class SenderTimeoutTask extends TimerTask {
 
     private int seq;
     private GoBackNSenderWindow window;
-    private List<Timer> timers;
+    private Map<Integer, Future<?>> tasksMap;
 
-    public SenderTimeoutTask(int seq, GoBackNSenderWindow window, List<Timer> timers) {
+    public SenderTimeoutTask(int seq, GoBackNSenderWindow window, Map<Integer, Future<?>> tasksMap) {
         this.seq = seq;
         this.window = window;
-        this.timers = timers;
+        this.tasksMap = tasksMap;
     }
 
     @Override
@@ -19,7 +19,9 @@ public class SenderTimeoutTask extends TimerTask {
         System.out.println("Timeout, sequence number = " + seq);
         int[] interval = window.resetWindow();
         for (int i = interval[0]; i <= interval[1]; i++) {
-            timers.get(i).cancel();                 // Cancel the timers of packets which need to be retransmitted.
+            if (tasksMap.containsKey(i)) {
+                tasksMap.get(i).cancel(false);                 // Cancel the timers of packets which need to be retransmitted.
+            }
         }
     }
 }

@@ -1,24 +1,22 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.util.List;
-import java.util.Timer;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
+import java.util.concurrent.Future;
 
 public class ACKReceiveThread implements Runnable {
 
     private final DatagramSocket socket;
     private final GoBackNSenderWindow window;
     private final int MSS;
-    private final List<Timer> timers;
+    private final Map<Integer, Future<?>> tasksMap;
     private boolean running;
 
-    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, List<Timer> timers) {
+    public ACKReceiveThread(DatagramSocket socket, GoBackNSenderWindow window, int MSS, Map<Integer, Future<?>> tasksMap) {
         this.socket = socket;
         this.window = window;
         this.MSS = MSS;
-        this.timers = timers;
+        this.tasksMap = tasksMap;
     }
 
     @Override
@@ -36,7 +34,9 @@ public class ACKReceiveThread implements Runnable {
                 if (type == Segment.ackType) {
                     int seq = segment.getSeqNum();
                     window.receiveACK(seq);
-                    timers.get(seq).cancel();     // Cancel timer of this packet.
+                    if (tasksMap.containsKey(seq)) {
+                        tasksMap.get(seq).cancel(false);     // Cancel timer of this packet.
+                    }
                     System.out.println("Received ACK, sequence number = " + seq);
                 }
             } catch (IOException e) {

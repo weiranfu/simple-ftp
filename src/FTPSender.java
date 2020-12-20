@@ -1,14 +1,16 @@
 import java.io.IOException;
 import java.net.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Timer;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class FTPSender implements Runnable {
 
     private final int UDP_HEADER_SIZE = 8;
     private final int MASK16 = 0xFFFF;
-    private final int DELAY_TIME = 5000;
+    private final int DELAY_SECONDS = 3;
 
     private final String SERVER_HOSTNAME;
     private final int SERVER_PORT;
@@ -16,6 +18,7 @@ public class FTPSender implements Runnable {
     private final int WINDOW_SIZE;
     private final int MSS;
     private final PseudoHeader pseudoHeader;
+    private final ScheduledThreadPoolExecutor executor;
     private DatagramSocket socket;
     private InetAddress serverAddress;
     private InetAddress localAddress;
@@ -29,6 +32,8 @@ public class FTPSender implements Runnable {
         WINDOW_SIZE = windowSize;
         this.MSS = MSS;
         pseudoHeader = new PseudoHeader();
+        executor = new ScheduledThreadPoolExecutor(windowSize);
+        executor.setRemoveOnCancelPolicy(true);         // Remove cancelled task immediately
     }
 
     @Override
@@ -41,14 +46,12 @@ public class FTPSender implements Runnable {
             pseudoHeader.setDesIP(serverAddress);
             pseudoHeader.setProtocol("UDP");
             List<Segment> segments = prepareSegments();
-            List<Timer> timers = new ArrayList<>();                // We don't need Thread-safe List, because Timer is thread-safe.
-            for (int i = 0; i < segments.size(); i++) timers.add(new Timer());
+            Map<Integer, Future<?>> tasksMap = new ConcurrentHashMap<>();           // Use ConcurrentHashMap for concurrency.
             window = new GoBackNSenderWindow(segments.size(), WINDOW_SIZE);
-            ACKReceiveThread receiveThread = new ACKReceiveThread(socket, window, MSS, timers);
+            ACKReceiveThread receiveThread = new ACKReceiveThread(socket, window, MSS, tasksMap);
             new Thread(receiveThread).start();
             // Begin to send UDP segments.
-            rdt_send(segments, timers, socket);
-            System.out.println("TTTTTTTT");
+            rdt_send(segments, tasksMap, socket);
             receiveThread.stop();
         } catch (SocketException e) {
             System.out.println("Failed to open a UDP socket: " + e.getMessage());
@@ -58,24 +61,26 @@ public class FTPSender implements Runnable {
             System.out.println("Failed to load file or send file with socket: " + e.getMessage());
         } finally {
             socket.close();
+            executor.shutdownNow();             // Shut down all timers immediately.
         }
     }
 
     /**
      * Reliable send data with UDP and Go-back-N.
      * @param segments The data wrapped in Segment.
-     * @param timers The timer list for each segment.
+     * @param tasksMap The timer Map for each segment and its future task.
      * @param socket The UDP socket.
      */
-    private void rdt_send(List<Segment> segments, List<Timer> timers,DatagramSocket socket) throws IOException {
+    private void rdt_send(List<Segment> segments, Map<Integer, Future<?>> tasksMap, DatagramSocket socket) throws IOException {
         while (!window.isFinished()) {
             int seq = window.sendPacketSeq();
             if (seq != -1) {
                 byte[] data = segments.get(seq).toByteArray();
                 DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
                 socket.send(packet);
-                timers.set(seq, new Timer());
-                timers.get(seq).schedule(new SenderTimeoutTask(seq, window, timers), DELAY_TIME);
+                SenderTimeoutTask timeoutTask = new SenderTimeoutTask(seq, window, tasksMap);
+                Future<?> task = executor.schedule(timeoutTask, DELAY_SECONDS, TimeUnit.SECONDS);
+                tasksMap.put(seq, task);
                 System.out.println("Sent packet, sequence number = " + seq);
             }
         }
