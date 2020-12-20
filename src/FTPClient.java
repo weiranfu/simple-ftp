@@ -79,6 +79,7 @@ public class FTPClient implements Runnable {
         }
         Segment msg = new Segment(new byte[Segment.HEADER_SIZE]);
         msg.setSeqNum(FTPServer.TRANSFER_COMPLETED_SEQ);
+        msg.setType(Segment.dataType);
         byte[] data = msg.toByteArray();
         DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
         socket.send(packet);
