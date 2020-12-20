@@ -61,7 +61,10 @@ public class FTPClient implements Runnable {
     }
 
     /**
-     * Reliable send data from file with UDP and Go-back-N.
+     * Reliable send data with UDP and Go-back-N.
+     * @param segments The data wrapped in Segment.
+     * @param timers The timer list for each segment.
+     * @param socket The UDP socket.
      */
     private void rdt_send(List<Segment> segments, List<Timer> timers,DatagramSocket socket) throws IOException {
         while (!window.isFinished()) {
@@ -74,6 +77,12 @@ public class FTPClient implements Runnable {
                 System.out.println("Sent packet, sequence number = " + seq);
             }
         }
+        Segment msg = new Segment(new byte[Segment.HEADER_SIZE]);
+        msg.setSeqNum(FTPServer.TRANSFER_COMPLETED_SEQ);
+        byte[] data = msg.toByteArray();
+        DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, SERVER_PORT);
+        socket.send(packet);
+        System.out.println("File transfer completed.");
     }
 
     private List<Segment> prepareSegments() throws IOException {
