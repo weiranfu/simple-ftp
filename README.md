@@ -27,7 +27,7 @@ The header of the segment contains three fields:
 
 ### Prerequisites
 
-#### Installing Java & Maven:
+#### Install Java & Maven:
 
 * JDK 8+
 * Maven version 3.x
@@ -36,13 +36,13 @@ The header of the segment contains three fields:
 
 [picocli](https://picocli.info/) are required.
 
-### Downloading the source
+### Download the source
 
 `$ git clone https://github.com/weiranfu/simple-ftp.git`
 
 `$ cd simple-ftp/`
 
-### Building the source
+### Build the source
 
 `$ mvn clean install`
 
