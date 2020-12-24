@@ -6,14 +6,16 @@ import picocli.CommandLine.Option;
 description = "A simple FTP server cli.")
 public class SimpleFTPServer implements Runnable {
 
+    @Option(names = {"-p", "--port"}, paramLabel = "<port number>", required = true, description = "The port number of FTP server is listening on.")
+    private int port;
     @Option(names = {"-f", "--file"}, paramLabel = "<file path>", required = true, description = "The path of output file.")
     private String filePath;
-    @Option(names = {"-p", "--possibility"}, paramLabel = "<loss possibility>", required = true, description = "The loss possibility of a packet.")
+    @Option(names = {"-P", "--possibility"}, paramLabel = "<loss possibility>", required = true, description = "The loss possibility of a packet.")
     private double p;
 
     @Override
     public void run() {
-        FTPReceiver receiver = new FTPReceiver(filePath, p);
+        FTPReceiver receiver = new FTPReceiver(port, filePath, p);
         new Thread(receiver).start();
     }
 
