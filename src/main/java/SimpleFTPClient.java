@@ -1,7 +1,8 @@
 import picocli.CommandLine;
+import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
-@CommandLine.Command(name = "ftp-client", mixinStandardHelpOptions = true, version = "ftp-client 1.0",
+@Command(name = "ftp-client", mixinStandardHelpOptions = true, version = "ftp-client 1.0",
 description = "A simple FTP client cli.")
 public class SimpleFTPClient implements Runnable {
 
