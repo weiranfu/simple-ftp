@@ -2,7 +2,7 @@
 
 > Transfer file from one host to another.
 
-Simple FTP uses UDP to send packets with Go-back-N automatic repeat request (ARQ) schema to support a reliable data transfer service.
+Simple FTP uses UDP to send packets, and Go-back-N automatic repeat request (ARQ) schema to support a reliable data transfer service.
 
 ## Architecture
 
@@ -36,8 +36,35 @@ The header of the segment contains three fields:
 
 [picocli](https://picocli.info/) are required.
 
-#### Downloading the source
+### Downloading the source
 
+`$ git clone https://github.com/weiranfu/simple-ftp.git`
+
+`$ cd simple-ftp/`
+
+### Building the source
+
+`$ mvn clean install`
+
+## How to run
+
+At `simple-ftp/` folder
+
+`echo "alias ftp-server='java -cp $PWD/target/simple-ftp-1.0-SNAPSHOT-jar-with-dependencies.jar SimpleFTPServer'" >> ~/.bashrc`
+
+`echo "alias ftp-client='java -cp $PWD/target/simple-ftp-1.0-SNAPSHOT-jar-with-dependencies.jar SimpleFTPClient'" >> ~/.bashrc`
+
+`source ~/.bashrc`
+
+Run the FTP Server
+
+`$ ftp-server -p <port number> -f <file path> -P <loss posibility>`
+
+Run the FTP Client
+
+`$ ftp-client -h <hostname> -p <port number> -f <file path> -w <window size> -m <MSS>`
+
+See `ftp-server --help` and `ftp-client --help` for more information.
 
 ## License
 
